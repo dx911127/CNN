@@ -1,0 +1,1 @@
+A classical realization of CNN to recognize mnist dataset
