@@ -119,7 +119,7 @@ class Conv2D(BaseLayer):
 			self.inputshape = self.validshape
 		if val == None:
 			val = np.sqrt(6 / (self.msize * self.msize))
-		self.para = 2 * val * (np.random.rand(self.filternum, inputshape[0] * self.msize * self.msize) - 0.5)
+		self.para = 2 * val * (np.random.rand(self.filternum * inputshape[0], self.msize * self.msize) - 0.5)
 		if self.para.shape[0] <= self.para.shape[1]:
 			self.para = self.myschmitt(self.para).reshape(self.filternum, inputshape[0], self.msize, self.msize)
 		else:
