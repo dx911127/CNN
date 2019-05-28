@@ -1,1 +1,2 @@
 A classical realization of CNN to recognize mnist dataset
+A mistake of conv2D layer parameters was made last time(Should be different for all input features,I noticed that when i was reading a blog about conception of CNN),I have corrected it recently.

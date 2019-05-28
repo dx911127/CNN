@@ -119,13 +119,13 @@ class Conv2D(BaseLayer):
 			self.inputshape = self.validshape
 		if val == None:
 			val = np.sqrt(6 / (self.msize * self.msize))
-		self.para = 2 * val * (np.random.rand(self.filternum, self.msize * self.msize) - 0.5)
+		self.para = 2 * val * (np.random.rand(self.filternum, inputshape[0] * self.msize * self.msize) - 0.5)
 		if self.para.shape[0] <= self.para.shape[1]:
-			self.para = self.myschmitt(self.para).reshape(self.filternum, self.msize, self.msize)
+			self.para = self.myschmitt(self.para).reshape(self.filternum, inputshape[0], self.msize, self.msize)
 		else:
-			self.para = self.para.reshape(self.filternum, self.msize, self.msize)
+			self.para = self.para.reshape(self.filternum, inputshape[0], self.msize, self.msize)
 		#self.para *= val
-		self.grad = np.zeros((self.filternum, self.msize, self.msize))
+		self.grad = np.zeros((self.filternum, inputshape[0], self.msize, self.msize))
 		self.mbias = (2 * val * (np.random.rand(self.filternum) - 0.5))
 		self.gbias = np.zeros(self.filternum)
 		self.minput = np.zeros(self.inputshape)
@@ -144,7 +144,7 @@ class Conv2D(BaseLayer):
 					ystart = k * self.stride
 					self.moutput[i][j][k] = self.mbias[i]
 					for i1 in range(0, self.inputshape[0]):
-						self.moutput[i][j][k] += np.multiply(self.minput[i1][xstart:xstart + self.msize, ystart:ystart + self.msize], self.para[i]).sum()
+						self.moutput[i][j][k] += np.multiply(self.minput[i1][xstart:xstart + self.msize, ystart:ystart + self.msize], self.para[i][i1]).sum()
 		self.moutput = self.activation(self.moutput)
 		return self.moutput
 
@@ -154,22 +154,18 @@ class Conv2D(BaseLayer):
 		hend = ((self.inputshape[1] - self.msize)//self.stride + 1) * self.stride
 		vend = ((self.inputshape[2] - self.msize)//self.stride + 1) * self.stride
 
+		self.backout.fill(0)
 		# without consider mloss[i] is full of zero
 		'''
-		for i in range(filters):
-			for j in range(msize):
-				for k in range(msize):
-					for i1 in range(self.inputshape[0]):
-						self.grad[i][j][k] += np.dot(mloss[i], self.minput[i1][j : hend + j: self.stride, k : vend + k : self.stride])
-						
-		self.backout.fill(0)
-		for i in range(filters):
-			for j in range(msize):
-				for k in range(msize):
-					for i1 in range(self.inputshape[0]):
-						self.backout[i1][j: hend + j: self.stride, k: vend + k: self.stride] += self.para[i][j][k] * mloss[i]
+		oshape1 = self.outputshape[1]
+		oshape2 = self.outputshape[2]
+ 		for i in range(self.filternum):
+			for i1 in range(self.inputshape[0]):
+				for j in range(self.msize):
+					for k in range(self.msize):
+						self.grad[i][i1][j][k] += np.multiply(xloss[i], self.minput[i1][j: j+oshape1: self.stride, k: k+oshape2: self.stride]).sum()
+						self.backout[i1][j: j+oshape1: self.stride, k: k+oshape2: self.stride] += xloss[i] * self.para[i][i1][j][k] 
 		'''
-		self.backout.fill(0)
 		for i in range(self.filternum):
 			for j in range(self.outputshape[1]):
 				for k in range(self.outputshape[2]):
@@ -179,8 +175,9 @@ class Conv2D(BaseLayer):
 						tloss = xloss[i][j][k]
 						self.gbias[i] += tloss
 						for i1 in range(self.inputshape[0]):
-							self.grad[i] += tloss * self.minput[i1][xstart: xstart + self.msize, ystart: ystart + self.msize]
-							self.backout[i1][xstart:xstart + self.msize, ystart: ystart + self.msize] += tloss * self.para[i]
+							self.grad[i][i1] += tloss * self.minput[i1][xstart: xstart + self.msize, ystart: ystart + self.msize]
+							self.backout[i1][xstart:xstart + self.msize, ystart: ystart + self.msize] += tloss * self.para[i][i1]
+		
 		return copy.copy(self.backout[:, :self.validshape[1], :self.validshape[2]])
 
 		def step(self, lr = 0.001, bcnt = 1, maxdiv = 1):
@@ -426,8 +423,10 @@ if __name__ == "__main__":
 	y_train = np.load('mnist/y_train.npy')
 	x_test = np.load('mnist/x_test.npy') / 255
 	y_test = np.load('mnist/y_test.npy')
-
-	#print(x_train[0])
+	
+	
+	#print(x_train.shape)
+	#print(x_test.shape)
 	'''
 	epochs = 4
 	for e in range(epochs):
