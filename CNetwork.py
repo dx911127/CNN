@@ -119,7 +119,7 @@ class Conv2D(BaseLayer):
 			self.inputshape = self.validshape
 		if val == None:
 			val = np.sqrt(6 / (self.msize * self.msize))
-		self.para = 2 * val * (np.random.rand(self.filternum * inputshape[0], self.msize * self.msize) - 0.5)
+		self.para = 2 * val * (np.random.rand(self.filternum, inputshape[0] * self.msize * self.msize) - 0.5)
 		if self.para.shape[0] <= self.para.shape[1]:
 			self.para = self.myschmitt(self.para).reshape(self.filternum, inputshape[0], self.msize, self.msize)
 		else:
@@ -138,9 +138,9 @@ class Conv2D(BaseLayer):
 	def forward(self, minput):
 		self.minput[:, :minput.shape[1], :minput.shape[2]] = minput
 		for i in range(self.filternum):
-			for j in range(0, (self.inputshape[1] - self.msize)//self.stride + 1):
+			for j in range(0, (self.inputshape[1] - self.msize)//self.stride + 1, self.stride):
 				xstart = j * self.stride
-				for k in range(0, (self.inputshape[2] - self.msize)//self.stride + 1):
+				for k in range(0, (self.inputshape[2] - self.msize)//self.stride + 1, self.stride):
 					ystart = k * self.stride
 					self.moutput[i][j][k] = self.mbias[i]
 					for i1 in range(0, self.inputshape[0]):
